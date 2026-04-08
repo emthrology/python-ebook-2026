@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2026 E-Book Store</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./library.css" />
+  </head>
+  <body>
+    <div class="store-shell">
+      <main class="store-main">
+        <section class="book-section">
+          <div class="section-heading">
+            <h2>E-Book Library</h2>
+            <span>PDF 전자책을 바로 열람하세요</span>
+          </div>
+
+          <div class="book-grid book-grid--2col">
+            <a class="book-tile featured" href="./ebook.html?book=fundamentals" data-pdf="./books/fundamentals.pdf">
+              <div class="book-cover-frame">
+                <canvas class="cover-canvas"></canvas>
+                <div class="cover-placeholder">로딩 중...</div>
+              </div>
+              <strong>Fundamentals for Self-Taught Programmers</strong>
+              <span>254 pages</span>
+            </a>
+
+            <a class="book-tile featured" href="./ebook.html?book=functional-go" data-pdf="./books/functional-go.pdf">
+              <div class="book-cover-frame">
+                <canvas class="cover-canvas"></canvas>
+                <div class="cover-placeholder">로딩 중...</div>
+              </div>
+              <strong>Functional Programming in Go</strong>
+              <span>248 pages</span>
+            </a>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module">
+      import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.mjs";
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.mjs";
+
+      document.querySelectorAll(".book-tile[data-pdf]").forEach(async (tile) => {
+        const pdfUrl = tile.dataset.pdf;
+        const canvas = tile.querySelector(".cover-canvas");
+        const placeholder = tile.querySelector(".cover-placeholder");
+
+        try {
+          const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+          const page = await pdf.getPage(1);
+          const defaultVp = page.getViewport({ scale: 1 });
+
+          const targetWidth = 320;
+          const dpr = window.devicePixelRatio || 1;
+          const scale = (targetWidth / defaultVp.width) * dpr;
+          const viewport = page.getViewport({ scale });
+
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          canvas.style.width = targetWidth + "px";
+          canvas.style.height = Math.floor((targetWidth / defaultVp.width) * defaultVp.height) + "px";
+
+          const ctx = canvas.getContext("2d");
+          await page.render({ canvasContext: ctx, viewport }).promise;
+
+          canvas.style.display = "block";
+          if (placeholder) placeholder.style.display = "none";
+        } catch (err) {
+          if (placeholder) placeholder.textContent = "커버 로드 실패";
+        }
+      });
+    </script>
+  </body>
+</html>

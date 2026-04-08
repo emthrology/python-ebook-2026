@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko" class="is-pdf-mode">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Book Viewer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <!-- Loading overlay -->
+    <div class="pdf-loading-overlay" id="loadingOverlay" style="display: none">
+      <div class="pdf-loading-spinner"></div>
+      <p id="loadingText">PDF 로딩 중...</p>
+    </div>
+
+    <div class="app-shell">
+      <main class="layout">
+        <aside class="toc-panel is-collapsed" id="tocPanel" aria-label="목차">
+          <div class="toc-header">
+            <h2>Contents</h2>
+            <p>원하는 섹션으로 바로 이동하세요.</p>
+          </div>
+          <nav id="tocList" class="toc-list"></nav>
+        </aside>
+
+        <section class="viewer">
+          <div class="reader-toolbar" aria-label="리더 도구">
+            <button class="icon-button" id="fullscreenToggle" type="button" title="전체화면" aria-label="전체화면"><span aria-hidden="true">⤢</span></button>
+            <button class="icon-button" id="searchPanelToggle" type="button" title="검색 패널" aria-label="검색 패널"><span aria-hidden="true">⌕</span></button>
+            <button class="icon-button" id="extractPanelToggle" type="button" title="추출 패널" aria-label="추출 패널"><span aria-hidden="true">☰</span></button>
+            <span class="toolbar-divider" aria-hidden="true"></span>
+            <button class="icon-button" id="zoomOutButton" type="button" title="축소" aria-label="축소"><span aria-hidden="true">－</span></button>
+            <button class="icon-button" id="zoomResetButton" type="button" title="확대 기본값" aria-label="확대 기본값"><span aria-hidden="true">⌂</span></button>
+            <button class="icon-button" id="zoomInButton" type="button" title="확대" aria-label="확대"><span aria-hidden="true">＋</span></button>
+            <span class="toolbar-readout" id="zoomValue">100%</span>
+            <span class="toolbar-divider" aria-hidden="true"></span>
+            <button class="icon-button" id="highlightToggle" type="button" title="하이라이트 켜기" aria-label="하이라이트 켜기"><span aria-hidden="true">✎</span></button>
+            <button class="icon-button" id="clearHighlightsButton" type="button" title="현재 페이지 하이라이트 삭제" aria-label="현재 페이지 하이라이트 삭제"><span aria-hidden="true">⌫</span></button>
+            <span class="toolbar-divider" aria-hidden="true"></span>
+            <button class="icon-button" id="extractCurrentButton" type="button" title="현재 내용 추출" aria-label="현재 내용 추출"><span aria-hidden="true">◧</span></button>
+            <button class="icon-button" id="extractAllButton" type="button" title="전체 내용 추출" aria-label="전체 내용 추출"><span aria-hidden="true">▤</span></button>
+            <button class="icon-button" id="copyExtractButton" type="button" title="복사" aria-label="복사"><span aria-hidden="true">⎘</span></button>
+            <button class="icon-button" id="downloadExtractButton" type="button" title="TXT 저장" aria-label="TXT 저장"><span aria-hidden="true">↓</span></button>
+          </div>
+
+          <div class="reader-statusbar">
+            <span class="meta-pill compact-pill"><strong id="pageIndicator">Cover</strong></span>
+            <span class="meta-pill compact-pill"><strong id="progressText">0%</strong></span>
+            <span class="meta-pill compact-pill"><strong id="pageCountText">0 Pages</strong></span>
+            <span class="meta-pill compact-pill"><strong id="stageIndicator">0 / 0</strong></span>
+            <span class="meta-pill compact-pill"><strong id="spreadIndicator">-</strong></span>
+          </div>
+
+          <div class="book-stage">
+            <button class="nav-hit left" id="prevPage" type="button" aria-label="이전 페이지"></button>
+
+            <div class="book" id="book" aria-live="polite"></div>
+
+            <button class="nav-hit right" id="nextPage" type="button" aria-label="다음 페이지"></button>
+            <div class="floating-bottom-left">
+              <button class="fab-button" id="tocToggle" type="button" aria-label="목차 열기">+</button>
+            </div>
+
+            <div class="floating-pagination">
+              <button class="icon-nav-button" id="prevButton" type="button" aria-label="이전 페이지">
+                <span aria-hidden="true">‹</span>
+              </button>
+              <input
+                id="pageRange"
+                class="page-range"
+                type="range"
+                min="0"
+                max="0"
+                value="0"
+                aria-label="페이지 이동"
+              />
+              <button class="icon-nav-button primary" id="nextButton" type="button" aria-label="다음 페이지">
+                <span aria-hidden="true">›</span>
+              </button>
+            </div>
+
+            <div class="utility-panels">
+              <section class="utility-panel is-collapsed" id="searchPanel">
+                <div class="utility-panel-header">
+                  <h3>검색 결과</h3>
+                  <span id="searchCountBadge" class="tool-value">0건</span>
+                </div>
+                <div class="panel-search-row">
+                  <input id="searchInput" class="tool-input" type="search" placeholder="제목, 설명, 키워드 검색" />
+                  <button class="control-button" id="searchButton" type="button">검색</button>
+                  <button class="control-button" id="clearSearchButton" type="button">초기화</button>
+                </div>
+                <p class="panel-helper" id="searchSummary">검색 결과가 없습니다.</p>
+                <div class="search-results" id="searchResults">
+                  <p class="empty-message">검색어를 입력하면 관련 페이지가 여기에 표시됩니다.</p>
+                </div>
+              </section>
+
+              <section class="utility-panel is-collapsed" id="extractPanel">
+                <div class="utility-panel-header">
+                  <h3>추출 내용</h3>
+                  <span id="extractModeBadge" class="tool-value">대기 중</span>
+                </div>
+                <p class="panel-helper" id="highlightHint">하이라이트를 켜면 페이지를 클릭해 표시를 남길 수 있습니다.</p>
+                <pre class="extract-output" id="extractOutput">추출 버튼을 누르면 현재 페이지 또는 전체 내용을 텍스트로 확인할 수 있습니다.</pre>
+              </section>
+            </div>
+          </div>
+
+          <div class="page-stages is-hidden" id="pageStages" aria-label="페이지 단계"></div>
+
+          <div class="controls is-hidden">
+            <section class="utility-panel">
+              <div class="utility-panel-header">
+                <h3>보조 패널</h3>
+              </div>
+              <p class="empty-message">레이아웃 유지용 숨김 영역입니다.</p>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <template id="sheetTemplate">
+      <article class="sheet">
+        <section class="page page-front">
+          <div class="page-inner"></div>
+        </section>
+        <section class="page page-back">
+          <div class="page-inner"></div>
+        </section>
+      </article>
+    </template>
+
+    <script src="./script.js" type="module"></script>
+  </body>
+</html>
